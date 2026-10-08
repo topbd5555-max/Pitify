@@ -1,10 +1,10 @@
 [{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.pitify.app",
-    "sha256_cert_fingerprints": [
-      "XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX"
-    ]
-  }
-}]
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.pitify.app",
+        "sha256_cert_fingerprints": ["FD:BD:39:1F:A9:4C:7E:0A:8E:4F:08:C8:8C:4E:08:85:9E:C4:56:E2:0F:87:8B:01:69:BE:16:81:95:34:B7:17"]
+      }
+    }]
+
+    
