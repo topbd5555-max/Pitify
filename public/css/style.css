@@ -21,12 +21,18 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+/* html has the base color; body is TRANSPARENT so bg layers show */
+html {
   background: var(--bg);
+}
+
+body {
+  background: transparent;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100%;
   overscroll-behavior-y: none;
+  position: relative;
 }
 
 /* ============================================ */
@@ -40,7 +46,7 @@ html, body {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  z-index: -3;
+  z-index: 0;
   animation: slowZoom 30s ease-in-out infinite alternate;
 }
 
@@ -54,14 +60,15 @@ html, body {
   inset: 0;
   background:
     radial-gradient(ellipse at top, rgba(20, 30, 15, 0.4), transparent 60%),
-    linear-gradient(180deg, rgba(8, 8, 12, 0.55) 0%, rgba(8, 8, 12, 0.85) 50%, rgba(8, 8, 12, 0.95) 100%);
-  z-index: -2;
+    linear-gradient(180deg, rgba(8, 8, 12, 0.55) 0%, rgba(8, 8, 12, 0.75) 50%, rgba(8, 8, 12, 0.9) 100%);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .rain-layer {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 2;
   pointer-events: none;
   overflow: hidden;
 }
@@ -82,7 +89,7 @@ html, body {
 .fireflies-layer {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 2;
   pointer-events: none;
   overflow: hidden;
 }
@@ -110,26 +117,25 @@ html, body {
 }
 
 /* ============================================ */
-/* ---------- LOGIN PAGE BACKGROUND ----------- */
+/* ---------- LOGIN PAGE — use AI image ------- */
 /* ============================================ */
 
 body.login-page .bg-image {
   background-image: url('/bg-login.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  animation: none;
+  transform: none;
 }
 
 body.login-page .bg-overlay {
-  background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 60%, rgba(0, 0, 0, 0.55) 100%);
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.25) 65%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 body.login-page .rain-layer {
-  opacity: 0;
+  display: none;
 }
 
 body.login-page .fireflies-layer {
-  opacity: 0.3;
+  opacity: 0.35;
 }
 
 /* ============================================ */
@@ -141,7 +147,7 @@ body.login-page .fireflies-layer {
   margin: 0 auto;
   padding: 20px 18px 110px;
   position: relative;
-  z-index: 1;
+  z-index: 10;
 }
 
 body.login-page #app {
@@ -280,7 +286,7 @@ input { font-family: inherit; }
   position: absolute;
   inset: 0;
   border-radius: 28px;
-  background: linear-gradient(180deg, rgba(3, 20, 8, 0.7), rgba(2, 12, 5, 0.8));
+  background: linear-gradient(180deg, rgba(3, 20, 8, 0.75), rgba(2, 12, 5, 0.85));
   backdrop-filter: blur(28px) saturate(160%);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   z-index: 1;
@@ -445,7 +451,6 @@ input { font-family: inherit; }
   color: rgba(200, 255, 61, 0.7);
   flex-shrink: 0;
   margin-right: 12px;
-  transition: color .3s;
 }
 
 .input-wrap:focus-within .input-icon {
@@ -477,7 +482,6 @@ input { font-family: inherit; }
   display: grid;
   place-items: center;
   margin-left: 8px;
-  transition: color .2s;
 }
 
 .eye-toggle svg { width: 18px; height: 18px; }
@@ -532,7 +536,6 @@ input { font-family: inherit; }
 .forgot {
   color: var(--accent);
   font-weight: 600;
-  transition: all .2s;
   text-shadow: 0 0 12px rgba(200, 255, 61, 0.3);
 }
 
@@ -554,12 +557,10 @@ input { font-family: inherit; }
     0 0 30px rgba(200, 255, 61, 0.5),
     0 8px 24px -8px rgba(200, 255, 61, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  transition: transform .15s;
   overflow: hidden;
 }
 
 .auth-btn:active { transform: scale(.98); }
-
 .auth-btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .btn-arrow {
@@ -613,10 +614,8 @@ input { font-family: inherit; }
   display: grid;
   place-items: center;
   color: var(--text);
-  transition: .2s;
 }
 .icon-btn svg { width: 20px; height: 20px; }
-.icon-btn:active { transform: scale(.94); }
 
 .avatar {
   width: 44px;
@@ -650,6 +649,11 @@ input { font-family: inherit; }
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
 }
 
 .stat-icon {
@@ -687,7 +691,8 @@ input { font-family: inherit; }
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
   border: 1px solid var(--glass-border);
   border-radius: 20px;
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
 
 .hero-content {
@@ -726,6 +731,7 @@ input { font-family: inherit; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 0 0 24px rgba(200, 255, 61, 0.5);
 }
 
 /* ============================================ */
@@ -865,7 +871,6 @@ input { font-family: inherit; }
   font-weight: 600;
   white-space: nowrap;
   color: var(--muted);
-  transition: .2s;
 }
 .chip.active {
   background: var(--accent);
@@ -904,7 +909,6 @@ input { font-family: inherit; }
   font-weight: 600;
   padding: 6px 14px;
   border-radius: 12px;
-  transition: .2s;
 }
 .nav-item svg {
   width: 22px;
@@ -1095,7 +1099,6 @@ input { font-family: inherit; }
   font-size: 22px;
   color: #fff;
 }
-.pbtn:active { transform: scale(.94); }
 
 .pbtn.main {
   background: var(--accent);
@@ -1288,6 +1291,5 @@ input { font-family: inherit; }
   .history-list { grid-template-columns: repeat(3, 1fr); }
   .nav { max-width: 1180px; }
   .side-card { display: block; }
-  .auth-inner { padding: 44px 36px 38px; }
   .profile-avatar { width: 130px !important; height: 130px !important; font-size: 48px !important; }
 }
