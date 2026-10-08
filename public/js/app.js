@@ -16,7 +16,6 @@ function initBackgroundEffects() {
       rainLayer.appendChild(drop);
     }
   }
-
   const ffLayer = document.getElementById('fireflies-layer');
   if (ffLayer && !ffLayer.dataset.init) {
     ffLayer.dataset.init = '1';
@@ -35,6 +34,87 @@ function initBackgroundEffects() {
   }
 }
 
+/* ---------------- UPDATE CHECK ---------------- */
+async function checkForUpdates() {
+  try {
+    const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
+    const data = await res.json();
+    const storedVersion = localStorage.getItem('pitify_version');
+
+    // First install — just store version, no popup
+    if (!storedVersion) {
+      localStorage.setItem('pitify_version', data.version);
+      return;
+    }
+
+    // Version changed — show popup
+    if (storedVersion !== data.version) {
+      showUpdatePopup(data);
+    }
+  } catch (err) {
+    console.warn('Update check failed:', err.message);
+  }
+}
+
+function showUpdatePopup(data) {
+  // Avoid duplicate popups
+  if (document.getElementById('update-popup')) return;
+
+  const popup = document.createElement('div');
+  popup.id = 'update-popup';
+  popup.className = 'update-popup';
+  popup.innerHTML = `
+    <div class="update-backdrop"></div>
+    <div class="update-card">
+      <div class="update-glow"></div>
+      <div class="update-icon">🎉</div>
+      <div class="update-badge">NEW UPDATE</div>
+      <h3 class="update-title">Pitify v${esc(data.version)}</h3>
+      <p class="update-message">${esc(data.message || 'New features available!')}</p>
+      <div class="update-date">Released: ${esc(data.releaseDate || '')}</div>
+      <div class="update-actions">
+        <button class="update-btn-later" id="updateLaterBtn">Later</button>
+        <button class="update-btn-now" id="updateNowBtn">
+          Update Now
+          <span class="update-arrow">→</span>
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(popup);
+
+  // Animate in
+  requestAnimationFrame(() => popup.classList.add('show'));
+
+  document.getElementById('updateLaterBtn').onclick = () => {
+    popup.classList.remove('show');
+    setTimeout(() => popup.remove(), 300);
+  };
+
+  document.getElementById('updateNowBtn').onclick = () => {
+    // Store new version
+    localStorage.setItem('pitify_version', data.version);
+
+    // Clear caches and reload
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        Promise.all(keys.map((k) => caches.delete(k))).then(() => {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then((regs) => {
+              Promise.all(regs.map((r) => r.unregister())).then(() => {
+                location.reload(true);
+              });
+            });
+          } else {
+            location.reload(true);
+          }
+        });
+      });
+    } else {
+      location.reload(true);
+    }
+  };
+}
+
 /* ---------------- INIT ---------------- */
 async function init() {
   initBackgroundEffects();
@@ -46,9 +126,15 @@ async function init() {
       API.setToken(null);
     }
   }
+
+  // Register service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
+
+  // Check for updates (after a slight delay so app loads first)
+  setTimeout(checkForUpdates, 1500);
+
   window.addEventListener('hashchange', router);
   router();
 }
@@ -63,7 +149,6 @@ function router() {
   const route = parts[0] || 'home';
   const param = parts[1];
 
-  // Toggle login-page mode class for the magical background
   if (route === 'login') {
     document.body.classList.add('login-page');
   } else {
@@ -135,29 +220,24 @@ function themeFor(w) {
   return CATEGORY_THEME[w.category] || 'theme-green';
 }
 
-/* ---------------- LOGIN (MAGICAL PREMIUM) ---------------- */
+/* ---------------- LOGIN ---------------- */
 function renderLogin() {
   app.innerHTML = `
     <div class="auth-page">
-
-      <!-- Side decorative cards (desktop only) -->
       <div class="side-card side-left">
         <div class="side-icon">🏃</div>
         <div class="side-text">STRONGER<br/>EVERYDAY</div>
         <div class="side-line"></div>
       </div>
-
       <div class="side-card side-right">
         <div class="side-icon">📊</div>
         <div class="side-text">BETTER<br/>YOU</div>
         <div class="side-line"></div>
       </div>
 
-      <!-- Main glass card -->
       <div class="auth-card">
         <div class="auth-card-glow"></div>
         <div class="auth-card-border"></div>
-
         <div class="auth-inner">
           <div class="crown-wrap">
             <div class="crown">👑</div>
@@ -250,7 +330,6 @@ function renderLogin() {
   const btn = document.getElementById('submitBtn');
   const btnText = document.getElementById('submitText');
 
-  // Password visibility toggle
   const pwdInput = form.querySelector('[name="password"]');
   const eyeBtn = form.querySelector('.eye-toggle');
   eyeBtn.onclick = () => {
@@ -299,12 +378,10 @@ function renderLogin() {
 /* ---------------- HOME ---------------- */
 async function renderHome() {
   app.innerHTML = `<div class="empty"><div class="empty-emoji">⏳</div>Loading...</div>`;
-
   try {
     const [workouts, stats] = await Promise.all([API.workouts(), API.stats()]);
     state.workouts = workouts;
     state.stats = stats;
-
     const featured = workouts.slice(0, 6);
     const first = state.user.name.split(' ')[0];
 
@@ -326,17 +403,17 @@ async function renderHome() {
       </div>
 
       <div class="stats">
-        <div class="neon-card theme-orange stat stat-hero">
+        <div class="neon-card theme-orange stat">
           <div class="stat-icon">🔥</div>
           <div class="stat-value">${stats.total_workouts}</div>
           <div class="stat-label">Workouts</div>
         </div>
-        <div class="neon-card theme-green stat stat-hero">
+        <div class="neon-card theme-green stat">
           <div class="stat-icon">⏱</div>
           <div class="stat-value">${stats.total_minutes}</div>
           <div class="stat-label">Minutes</div>
         </div>
-        <div class="neon-card theme-purple stat stat-hero">
+        <div class="neon-card theme-purple stat">
           <div class="stat-icon">📅</div>
           <div class="stat-value">${stats.streak}</div>
           <div class="stat-label">Day Streak</div>
@@ -352,9 +429,7 @@ async function renderHome() {
             Browse Workouts <span class="arrow">→</span>
           </button>
         </div>
-        <div class="hero-visual">
-          <div class="hero-dumbbell">🏋️</div>
-        </div>
+        <div class="hero-visual"><div class="hero-dumbbell">🏋️</div></div>
         <div class="hero-crown">👑<div class="hero-motto">DISCIPLINE<br/>BUILDS<br/>FREEDOM</div></div>
       </div>
 
@@ -403,24 +478,14 @@ async function renderWorkouts() {
         <div class="greet-name">Workouts</div>
         <div class="avatar">${initials(state.user.name)}</div>
       </div>
-
       <div class="filters">
-        ${cats
-          .map(
-            (c) =>
-              `<button class="chip ${state.filter === c ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`
-          )
-          .join('')}
+        ${cats.map((c) => `<button class="chip ${state.filter === c ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
       </div>
-
       <div class="cards-grid" id="list"></div>
       ${nav('workouts')}`;
 
     const paint = () => {
-      const list =
-        state.filter === 'All'
-          ? state.workouts
-          : state.workouts.filter((w) => w.category === state.filter);
+      const list = state.filter === 'All' ? state.workouts : state.workouts.filter((w) => w.category === state.filter);
       document.getElementById('list').innerHTML = list.length
         ? list.map(cardHTML).join('')
         : `<div class="empty" style="grid-column:1/-1"><div class="empty-emoji">🔍</div>No workouts found</div>`;
@@ -429,9 +494,7 @@ async function renderWorkouts() {
     document.querySelectorAll('.chip').forEach((chip) => {
       chip.onclick = () => {
         state.filter = chip.dataset.cat;
-        document.querySelectorAll('.chip').forEach((c) =>
-          c.classList.toggle('active', c === chip)
-        );
+        document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
         paint();
       };
     });
@@ -452,7 +515,6 @@ async function renderWorkoutDetail(id) {
       <div class="header">
         <button class="player-close" onclick="history.back()">‹</button>
       </div>
-
       <div class="detail-hero">
         <div class="detail-emoji">${w.thumbnail || '💪'}</div>
         <div class="detail-title">${esc(w.title)}</div>
@@ -462,27 +524,20 @@ async function renderWorkoutDetail(id) {
           <span>🔥 ${w.calories} cal</span>
         </div>
       </div>
-
       <button class="btn-primary neon-card ${theme}" id="startBtn" style="width:100%;border-radius:16px;padding:18px">
         ▶ Start Workout
       </button>
-
       <div class="section-title" style="margin-top:32px">
         <span>Exercises (${w.exercises.length})</span>
       </div>
       <div class="ex-list">
-        ${w.exercises
-          .map(
-            (ex, i) => `
+        ${w.exercises.map((ex, i) => `
           <div class="ex-item">
             <div class="ex-num">${i + 1}</div>
             <div class="ex-name">${esc(ex.name)}</div>
             <div class="ex-time">${ex.seconds}s</div>
-          </div>`
-          )
-          .join('')}
+          </div>`).join('')}
       </div>
-
       ${nav('workouts')}`;
 
     document.getElementById('startBtn').onclick = () => startPlayer(w);
@@ -532,32 +587,23 @@ function startPlayer(w) {
 
     el.innerHTML = `
       <div class="player-bg-wrap">${bgHTML}</div>
-
       <div class="player-overlay">
         <div class="player-top">
           <div class="player-title">${esc(w.title)}</div>
           <button class="player-close" id="closeBtn">✕</button>
         </div>
-
         <div class="player-progress">
           <div class="player-progress-fill" style="width:${pct}%"></div>
         </div>
-
         <div class="player-spacer"></div>
-
         <div class="player-info">
           <div class="player-phase ${isRest ? 'rest' : ''}">
             ${isRest ? 'REST' : `EXERCISE ${steps.slice(0, idx + 1).filter((x) => x.type === 'work').length}`}
           </div>
           <div class="player-exercise">${esc(s.name)}</div>
           <div class="player-timer">${remaining}</div>
-          ${
-            next
-              ? `<div class="player-next">Next: ${esc(next.name)} · ${next.seconds}s</div>`
-              : `<div class="player-next">Last one! 🔥</div>`
-          }
+          ${next ? `<div class="player-next">Next: ${esc(next.name)} · ${next.seconds}s</div>` : `<div class="player-next">Last one! 🔥</div>`}
         </div>
-
         <div class="player-controls">
           <button class="pbtn" id="prevBtn">⏮</button>
           <button class="pbtn main" id="toggleBtn">${paused ? '▶' : '❚❚'}</button>
@@ -566,15 +612,9 @@ function startPlayer(w) {
       </div>`;
 
     el.querySelector('#closeBtn').onclick = () => {
-      if (confirm('Quit workout?')) {
-        clearInterval(tick);
-        el.remove();
-      }
+      if (confirm('Quit workout?')) { clearInterval(tick); el.remove(); }
     };
-    el.querySelector('#toggleBtn').onclick = () => {
-      paused = !paused;
-      paint();
-    };
+    el.querySelector('#toggleBtn').onclick = () => { paused = !paused; paint(); };
     el.querySelector('#skipBtn').onclick = () => nextStep();
     el.querySelector('#prevBtn').onclick = () => {
       if (idx === 0) return;
@@ -596,19 +636,13 @@ function startPlayer(w) {
   async function finish() {
     clearInterval(tick);
     el.innerHTML = `
-      <div class="player-bg-rest">
-        <div class="finish-emoji">🎉</div>
-      </div>
+      <div class="player-bg-rest"><div class="finish-emoji">🎉</div></div>
       <div class="player-overlay" style="justify-content:center;align-items:center">
         <div class="finish-title">Workout Complete!</div>
         <div class="finish-sub">${w.duration} min · ${w.calories} calories burned</div>
       </div>`;
     try {
-      await API.saveSession({
-        workout_id: w.id,
-        duration: w.duration,
-        calories: w.calories,
-      });
+      await API.saveSession({ workout_id: w.id, duration: w.duration, calories: w.calories });
     } catch {}
     setTimeout(() => {
       el.remove();
@@ -621,10 +655,8 @@ function startPlayer(w) {
     if (paused) return;
     remaining--;
     if (remaining <= 0) return nextStep();
-
     const timer = el.querySelector('.player-timer');
     if (timer) timer.textContent = remaining;
-
     const fill = el.querySelector('.player-progress-fill');
     if (fill) {
       const s = steps[idx];
@@ -649,37 +681,30 @@ async function renderProgress() {
         <div class="greet-name">Progress</div>
         <div class="avatar">${initials(state.user.name)}</div>
       </div>
-
       <div class="stats">
-        <div class="neon-card theme-orange stat stat-hero">
+        <div class="neon-card theme-orange stat">
           <div class="stat-icon">🔥</div>
           <div class="stat-value">${stats.total_workouts}</div>
           <div class="stat-label">Workouts</div>
         </div>
-        <div class="neon-card theme-green stat stat-hero">
+        <div class="neon-card theme-green stat">
           <div class="stat-icon">⏱</div>
           <div class="stat-value">${stats.total_minutes}</div>
           <div class="stat-label">Minutes</div>
         </div>
-        <div class="neon-card theme-purple stat stat-hero">
+        <div class="neon-card theme-purple stat">
           <div class="stat-icon">⚡</div>
           <div class="stat-value">${stats.total_calories}</div>
           <div class="stat-label">Calories</div>
         </div>
       </div>
-
       <div class="neon-card theme-green" style="padding:20px;margin-bottom:20px">
         <div style="font-size:13px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Current Streak</div>
         <div style="font-size:32px;font-weight:900;color:var(--accent)">🔥 ${stats.streak} day${stats.streak === 1 ? '' : 's'}</div>
       </div>
-
       <div class="section-title"><span>Recent Activity</span></div>
       <div class="history-list">
-        ${
-          history.length
-            ? history
-                .map(
-                  (h) => `
+        ${history.length ? history.map((h) => `
           <div class="neon-card theme-cyan history-item">
             <div>
               <div style="font-weight:600;font-size:14px">${esc(h.thumbnail || '💪')} ${esc(h.title)}</div>
@@ -689,13 +714,9 @@ async function renderProgress() {
               <div>${h.duration} min</div>
               <div>🔥 ${h.calories}</div>
             </div>
-          </div>`
-                )
-                .join('')
-            : `<div class="empty" style="grid-column:1/-1"><div class="empty-emoji">🏃</div>No workouts yet.<br>Start your first one!</div>`
-        }
+          </div>`).join('')
+          : `<div class="empty" style="grid-column:1/-1"><div class="empty-emoji">🏃</div>No workouts yet.<br>Start your first one!</div>`}
       </div>
-
       ${nav('progress')}`;
   } catch (e) {
     app.innerHTML = `<div class="empty"><div class="empty-emoji">😵</div>${esc(e.message)}</div>`;
@@ -708,29 +729,45 @@ function renderProfile() {
     <div class="header">
       <div class="greet-name">Profile</div>
     </div>
-
     <div class="profile-card">
       <div class="avatar profile-avatar">${initials(state.user.name)}</div>
       <div class="profile-name">${esc(state.user.name)}</div>
       <div class="profile-email">${esc(state.user.email)}</div>
     </div>
-
     <div class="neon-card theme-yellow" style="padding:18px;margin-bottom:20px">
       <div style="display:flex;gap:14px;align-items:center">
         <div style="font-size:28px">📅</div>
         <div>
           <div style="font-weight:700;font-size:15px">Member since</div>
           <div style="color:var(--muted);font-size:13px;margin-top:4px">${
-            state.user.created_at
-              ? new Date(state.user.created_at + 'Z').toLocaleDateString()
-              : 'Today'
+            state.user.created_at ? new Date(state.user.created_at + 'Z').toLocaleDateString() : 'Today'
           }</div>
         </div>
       </div>
     </div>
-
+    <div class="neon-card theme-cyan" style="padding:18px;margin-bottom:20px">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="font-size:28px">📱</div>
+        <div>
+          <div style="font-weight:700;font-size:15px">App Version</div>
+          <div style="color:var(--muted);font-size:13px;margin-top:4px" id="appVersion">Checking...</div>
+        </div>
+      </div>
+    </div>
     <button class="logout" id="logoutBtn">Log Out</button>
     ${nav('profile')}`;
+
+  // Show current version
+  fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
+    .then((r) => r.json())
+    .then((d) => {
+      const el = document.getElementById('appVersion');
+      if (el) el.textContent = 'v' + d.version;
+    })
+    .catch(() => {
+      const el = document.getElementById('appVersion');
+      if (el) el.textContent = 'Unknown';
+    });
 
   document.getElementById('logoutBtn').onclick = () => {
     API.setToken(null);
