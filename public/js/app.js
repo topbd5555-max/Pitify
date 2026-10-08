@@ -291,7 +291,7 @@ async function renderWorkoutDetail(id) {
   }
 }
 
-/* ---------------- PLAYER ---------------- */
+/* ---------------- PLAYER (FULLSCREEN FITIFY STYLE) ---------------- */
 function startPlayer(w) {
   const steps = [];
   w.exercises.forEach((ex) => {
@@ -321,52 +321,48 @@ function startPlayer(w) {
     const videoName = isRest ? null : s.name.toLowerCase().replace(/\s+/g, '-');
     const videoPath = videoName ? `/videos/${videoName}.mp4` : null;
 
-    const mediaHTML = isRest
-      ? `<div class="exercise-video rest-video"><div class="rest-emoji">😌</div></div>`
+    const bgHTML = isRest
+      ? `<div class="player-bg-rest"><div class="rest-emoji">😌</div></div>`
       : `
-        <div class="exercise-video">
-          <video 
-            src="${videoPath}" 
-            autoplay 
-            loop 
-            muted 
-            playsinline
-            preload="auto"
-            onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'video-fallback\\'>💪</div>';">
-          </video>
-        </div>`;
+        <video class="player-bg-blur" src="${videoPath}" autoplay loop muted playsinline preload="auto"></video>
+        <video class="player-bg-main" src="${videoPath}" autoplay loop muted playsinline preload="auto"
+          onerror="this.style.display='none'; this.parentElement.querySelector('.player-bg-blur').style.display='none'; this.parentElement.querySelector('.player-bg-fallback').style.display='flex';"></video>
+        <div class="player-bg-fallback" style="display:none;"><div class="video-fallback">💪</div></div>
+      `;
 
     el.innerHTML = `
-      <div class="player-top">
-        <div class="player-title">${esc(w.title)}</div>
-        <button class="player-close" id="closeBtn">✕</button>
-      </div>
+      <div class="player-bg-wrap">${bgHTML}</div>
 
-      <div class="player-progress">
-        <div class="player-progress-fill" style="width:${pct}%"></div>
-      </div>
-
-      <div class="player-video-wrap">
-        ${mediaHTML}
-      </div>
-
-      <div class="player-info">
-        <div class="player-phase ${isRest ? 'rest' : ''}">
-          ${isRest ? 'REST' : `EXERCISE ${steps.slice(0, idx + 1).filter((x) => x.type === 'work').length}`}
+      <div class="player-overlay">
+        <div class="player-top">
+          <div class="player-title">${esc(w.title)}</div>
+          <button class="player-close" id="closeBtn">✕</button>
         </div>
-        <div class="player-exercise">${esc(s.name)}</div>
-        <div class="player-timer">${remaining}</div>
-        ${
-          next
-            ? `<div class="player-next">Next: ${esc(next.name)} · ${next.seconds}s</div>`
-            : `<div class="player-next">Last one! 🔥</div>`
-        }
-      </div>
 
-      <div class="player-controls">
-        <button class="pbtn" id="prevBtn">⏮</button>
-        <button class="pbtn main" id="toggleBtn">${paused ? '▶' : '❚❚'}</button>
-        <button class="pbtn" id="skipBtn">⏭</button>
+        <div class="player-progress">
+          <div class="player-progress-fill" style="width:${pct}%"></div>
+        </div>
+
+        <div class="player-spacer"></div>
+
+        <div class="player-info">
+          <div class="player-phase ${isRest ? 'rest' : ''}">
+            ${isRest ? 'REST' : `EXERCISE ${steps.slice(0, idx + 1).filter((x) => x.type === 'work').length}`}
+          </div>
+          <div class="player-exercise">${esc(s.name)}</div>
+          <div class="player-timer">${remaining}</div>
+          ${
+            next
+              ? `<div class="player-next">Next: ${esc(next.name)} · ${next.seconds}s</div>`
+              : `<div class="player-next">Last one! 🔥</div>`
+          }
+        </div>
+
+        <div class="player-controls">
+          <button class="pbtn" id="prevBtn">⏮</button>
+          <button class="pbtn main" id="toggleBtn">${paused ? '▶' : '❚❚'}</button>
+          <button class="pbtn" id="skipBtn">⏭</button>
+        </div>
       </div>`;
 
     el.querySelector('#closeBtn').onclick = () => {
@@ -400,8 +396,10 @@ function startPlayer(w) {
   async function finish() {
     clearInterval(tick);
     el.innerHTML = `
-      <div class="player-finish">
+      <div class="player-bg-rest">
         <div class="finish-emoji">🎉</div>
+      </div>
+      <div class="player-overlay" style="justify-content:center;align-items:center">
         <div class="finish-title">Workout Complete!</div>
         <div class="finish-sub">${w.duration} min · ${w.calories} calories burned</div>
       </div>`;
