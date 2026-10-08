@@ -1,8 +1,46 @@
 const app = document.getElementById('app');
 const state = { user: null, workouts: [], stats: null, history: [], filter: 'All' };
 
+/* ---------------- BACKGROUND EFFECTS ---------------- */
+function initBackgroundEffects() {
+  // Rain drops
+  const rainLayer = document.getElementById('rain-layer');
+  if (rainLayer && !rainLayer.dataset.init) {
+    rainLayer.dataset.init = '1';
+    for (let i = 0; i < 70; i++) {
+      const drop = document.createElement('div');
+      drop.className = 'raindrop';
+      drop.style.left = Math.random() * 100 + '%';
+      drop.style.animationDelay = (Math.random() * 2) + 's';
+      drop.style.animationDuration = (0.6 + Math.random() * 0.8) + 's';
+      drop.style.opacity = (0.15 + Math.random() * 0.45).toFixed(2);
+      rainLayer.appendChild(drop);
+    }
+  }
+
+  // Fireflies (jonaki poka)
+  const ffLayer = document.getElementById('fireflies-layer');
+  if (ffLayer && !ffLayer.dataset.init) {
+    ffLayer.dataset.init = '1';
+    for (let i = 0; i < 22; i++) {
+      const f = document.createElement('div');
+      f.className = 'firefly';
+      f.style.left = Math.random() * 100 + '%';
+      f.style.top = Math.random() * 100 + '%';
+      f.style.animationDelay = (Math.random() * 6) + 's';
+      f.style.animationDuration = (5 + Math.random() * 7) + 's';
+      const size = 3 + Math.random() * 3;
+      f.style.width = size + 'px';
+      f.style.height = size + 'px';
+      ffLayer.appendChild(f);
+    }
+  }
+}
+
 /* ---------------- INIT ---------------- */
 async function init() {
+  initBackgroundEffects();
+
   if (API.token) {
     try {
       state.user = await API.me();
@@ -76,6 +114,22 @@ function nav(active) {
 
 const initials = (n) =>
   n.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
+
+// Theme colors based on workout category
+const CATEGORY_THEME = {
+  'Full Body': 'theme-orange',
+  'Abs': 'theme-pink',
+  'Chest': 'theme-yellow',
+  'Legs': 'theme-green',
+  'Arms': 'theme-red',
+  'Cardio': 'theme-cyan',
+  'Stretching': 'theme-purple',
+  'HIIT': 'theme-red',
+};
+
+function themeFor(w) {
+  return CATEGORY_THEME[w.category] || 'theme-green';
+}
 
 /* ---------------- LOGIN ---------------- */
 function renderLogin() {
@@ -158,22 +212,54 @@ async function renderHome() {
           <div class="greet">Welcome back 👋</div>
           <div class="greet-name">${esc(first)}</div>
         </div>
-        <div class="avatar">${initials(state.user.name)}</div>
+        <div class="header-actions">
+          <button class="icon-btn" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+          </button>
+          <div class="avatar">${initials(state.user.name)}</div>
+        </div>
       </div>
 
       <div class="stats">
-        <div class="stat"><div class="stat-value">${stats.total_workouts}</div><div class="stat-label">Workouts</div></div>
-        <div class="stat"><div class="stat-value">${stats.total_minutes}</div><div class="stat-label">Minutes</div></div>
-        <div class="stat"><div class="stat-value">${stats.streak}</div><div class="stat-label">Day Streak</div></div>
+        <div class="neon-card theme-orange stat stat-hero">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-value">${stats.total_workouts}</div>
+          <div class="stat-label">Workouts</div>
+        </div>
+        <div class="neon-card theme-green stat stat-hero">
+          <div class="stat-icon">⏱</div>
+          <div class="stat-value">${stats.total_minutes}</div>
+          <div class="stat-label">Minutes</div>
+        </div>
+        <div class="neon-card theme-purple stat stat-hero">
+          <div class="stat-icon">📅</div>
+          <div class="stat-value">${stats.streak}</div>
+          <div class="stat-label">Day Streak</div>
+        </div>
       </div>
 
-      <div class="hero">
-        <h2>Ready to sweat?</h2>
-        <p>Pick a workout and start burning calories now.</p>
-        <button onclick="location.hash='/workouts'">Browse Workouts</button>
+      <div class="neon-card theme-green hero">
+        <div class="hero-content">
+          <div class="hero-label">YOUR FITNESS JOURNEY</div>
+          <h2>Ready to <span class="accent-text">sweat?</span></h2>
+          <p>Pick a workout and start burning calories now.</p>
+          <button class="hero-btn" onclick="location.hash='/workouts'">
+            Browse Workouts <span class="arrow">→</span>
+          </button>
+        </div>
+        <div class="hero-visual">
+          <div class="hero-dumbbell">🏋️</div>
+        </div>
+        <div class="hero-crown">👑<div class="hero-motto">DISCIPLINE<br/>BUILDS<br/>FREEDOM</div></div>
       </div>
 
-      <div class="section-title">Popular <a href="#/workouts">See all</a></div>
+      <div class="section-title">
+        <span>🔥 Popular</span>
+        <a href="#/workouts">See all →</a>
+      </div>
       <div class="cards-grid">
         ${featured.map(cardHTML).join('')}
       </div>
@@ -184,15 +270,20 @@ async function renderHome() {
 }
 
 function cardHTML(w) {
+  const theme = themeFor(w);
   return `
-    <a class="card" href="#/workout/${w.id}">
-      <div class="card-thumb">${w.thumbnail || '💪'}</div>
-      <div class="card-body">
-        <div class="card-title">${esc(w.title)}</div>
-        <div class="card-meta">
+    <a class="neon-card workout-card ${theme}" href="#/workout/${w.id}">
+      <div class="wc-thumb">${w.thumbnail || '💪'}</div>
+      <div class="wc-body">
+        <div class="wc-title">${esc(w.title)}</div>
+        <div class="wc-meta">
           <span class="pill ${w.level.toLowerCase()}">${w.level}</span>
+          <span class="wc-dot">·</span>
           <span>⏱ ${w.duration} min</span>
-          <span>🔥 ${w.calories} cal</span>
+        </div>
+        <div class="wc-footer">
+          <span class="wc-cal">🔥 ${w.calories} cal</span>
+          <span class="wc-arrow">›</span>
         </div>
       </div>
     </a>`;
@@ -253,6 +344,7 @@ async function renderWorkoutDetail(id) {
   app.innerHTML = `<div class="empty"><div class="empty-emoji">⏳</div>Loading...</div>`;
   try {
     const w = await API.workout(id);
+    const theme = themeFor(w);
 
     app.innerHTML = `
       <div class="header">
@@ -269,9 +361,13 @@ async function renderWorkoutDetail(id) {
         </div>
       </div>
 
-      <button class="btn-primary" id="startBtn" style="width:100%">▶ Start Workout</button>
+      <button class="btn-primary neon-card ${theme}" id="startBtn" style="width:100%;border-radius:16px;padding:18px">
+        ▶ Start Workout
+      </button>
 
-      <div class="section-title" style="margin-top:32px">Exercises (${w.exercises.length})</div>
+      <div class="section-title" style="margin-top:32px">
+        <span>Exercises (${w.exercises.length})</span>
+      </div>
       <div class="ex-list">
         ${w.exercises
           .map(
@@ -293,7 +389,7 @@ async function renderWorkoutDetail(id) {
   }
 }
 
-/* ---------------- PLAYER (FULLSCREEN FITIFY STYLE) ---------------- */
+/* ---------------- PLAYER ---------------- */
 function startPlayer(w) {
   const steps = [];
   w.exercises.forEach((ex) => {
@@ -453,21 +549,36 @@ async function renderProgress() {
       </div>
 
       <div class="stats">
-        <div class="stat"><div class="stat-value">${stats.total_workouts}</div><div class="stat-label">Workouts</div></div>
-        <div class="stat"><div class="stat-value">${stats.total_minutes}</div><div class="stat-label">Minutes</div></div>
-        <div class="stat"><div class="stat-value">${stats.total_calories}</div><div class="stat-label">Calories</div></div>
+        <div class="neon-card theme-orange stat stat-hero">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-value">${stats.total_workouts}</div>
+          <div class="stat-label">Workouts</div>
+        </div>
+        <div class="neon-card theme-green stat stat-hero">
+          <div class="stat-icon">⏱</div>
+          <div class="stat-value">${stats.total_minutes}</div>
+          <div class="stat-label">Minutes</div>
+        </div>
+        <div class="neon-card theme-purple stat stat-hero">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-value">${stats.total_calories}</div>
+          <div class="stat-label">Calories</div>
+        </div>
       </div>
 
-      <div class="section-title">🔥 Current Streak: ${stats.streak} day${stats.streak === 1 ? '' : 's'}</div>
+      <div class="neon-card theme-green" style="padding:20px;margin-bottom:20px">
+        <div style="font-size:13px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Current Streak</div>
+        <div style="font-size:32px;font-weight:900;color:var(--accent)">🔥 ${stats.streak} day${stats.streak === 1 ? '' : 's'}</div>
+      </div>
 
-      <div class="section-title" style="margin-top:26px">Recent Activity</div>
+      <div class="section-title"><span>Recent Activity</span></div>
       <div class="history-list">
         ${
           history.length
             ? history
                 .map(
                   (h) => `
-          <div class="history-item">
+          <div class="neon-card theme-cyan history-item">
             <div>
               <div style="font-weight:600;font-size:14px">${esc(h.thumbnail || '💪')} ${esc(h.title)}</div>
               <div class="history-date">${new Date(h.completed_at + 'Z').toLocaleString()}</div>
@@ -497,22 +608,22 @@ function renderProfile() {
     </div>
 
     <div class="profile-card">
-      <div class="avatar" style="width:84px;height:84px;font-size:32px;margin:0 auto 16px">
-        ${initials(state.user.name)}
-      </div>
-      <div style="font-size:20px;font-weight:800;text-align:center">${esc(state.user.name)}</div>
-      <div style="color:var(--muted);font-size:14px;margin-top:6px;text-align:center">${esc(state.user.email)}</div>
+      <div class="avatar profile-avatar">${initials(state.user.name)}</div>
+      <div class="profile-name">${esc(state.user.name)}</div>
+      <div class="profile-email">${esc(state.user.email)}</div>
     </div>
 
-    <div class="card">
-      <div class="card-thumb">📅</div>
-      <div class="card-body">
-        <div class="card-title">Member since</div>
-        <div class="card-meta">${
-          state.user.created_at
-            ? new Date(state.user.created_at + 'Z').toLocaleDateString()
-            : 'Today'
-        }</div>
+    <div class="neon-card theme-yellow" style="padding:18px;margin-bottom:20px">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="font-size:28px">📅</div>
+        <div>
+          <div style="font-weight:700;font-size:15px">Member since</div>
+          <div style="color:var(--muted);font-size:13px;margin-top:4px">${
+            state.user.created_at
+              ? new Date(state.user.created_at + 'Z').toLocaleDateString()
+              : 'Today'
+          }</div>
+        </div>
       </div>
     </div>
 
