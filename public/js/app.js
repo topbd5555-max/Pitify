@@ -149,7 +149,7 @@ async function renderHome() {
     state.workouts = workouts;
     state.stats = stats;
 
-    const featured = workouts.slice(0, 4);
+    const featured = workouts.slice(0, 6);
     const first = state.user.name.split(' ')[0];
 
     app.innerHTML = `
@@ -174,7 +174,9 @@ async function renderHome() {
       </div>
 
       <div class="section-title">Popular <a href="#/workouts">See all</a></div>
-      ${featured.map(cardHTML).join('')}
+      <div class="cards-grid">
+        ${featured.map(cardHTML).join('')}
+      </div>
       ${nav('home')}`;
   } catch (e) {
     app.innerHTML = `<div class="empty"><div class="empty-emoji">😵</div>${esc(e.message)}</div>`;
@@ -218,7 +220,7 @@ async function renderWorkouts() {
           .join('')}
       </div>
 
-      <div id="list"></div>
+      <div class="cards-grid" id="list"></div>
       ${nav('workouts')}`;
 
     const paint = () => {
@@ -228,7 +230,7 @@ async function renderWorkouts() {
           : state.workouts.filter((w) => w.category === state.filter);
       document.getElementById('list').innerHTML = list.length
         ? list.map(cardHTML).join('')
-        : `<div class="empty"><div class="empty-emoji">🔍</div>No workouts found</div>`;
+        : `<div class="empty" style="grid-column:1/-1"><div class="empty-emoji">🔍</div>No workouts found</div>`;
     };
 
     document.querySelectorAll('.chip').forEach((chip) => {
@@ -459,25 +461,27 @@ async function renderProgress() {
       <div class="section-title">🔥 Current Streak: ${stats.streak} day${stats.streak === 1 ? '' : 's'}</div>
 
       <div class="section-title" style="margin-top:26px">Recent Activity</div>
-      ${
-        history.length
-          ? history
-              .map(
-                (h) => `
-        <div class="history-item">
-          <div>
-            <div style="font-weight:600;font-size:14px">${esc(h.thumbnail || '💪')} ${esc(h.title)}</div>
-            <div class="history-date">${new Date(h.completed_at + 'Z').toLocaleString()}</div>
-          </div>
-          <div style="text-align:right;font-size:12px;color:var(--muted)">
-            <div>${h.duration} min</div>
-            <div>🔥 ${h.calories}</div>
-          </div>
-        </div>`
-              )
-              .join('')
-          : `<div class="empty"><div class="empty-emoji">🏃</div>No workouts yet.<br>Start your first one!</div>`
-      }
+      <div class="history-list">
+        ${
+          history.length
+            ? history
+                .map(
+                  (h) => `
+          <div class="history-item">
+            <div>
+              <div style="font-weight:600;font-size:14px">${esc(h.thumbnail || '💪')} ${esc(h.title)}</div>
+              <div class="history-date">${new Date(h.completed_at + 'Z').toLocaleString()}</div>
+            </div>
+            <div style="text-align:right;font-size:12px;color:var(--muted)">
+              <div>${h.duration} min</div>
+              <div>🔥 ${h.calories}</div>
+            </div>
+          </div>`
+                )
+                .join('')
+            : `<div class="empty" style="grid-column:1/-1"><div class="empty-emoji">🏃</div>No workouts yet.<br>Start your first one!</div>`
+        }
+      </div>
 
       ${nav('progress')}`;
   } catch (e) {
@@ -492,12 +496,12 @@ function renderProfile() {
       <div class="greet-name">Profile</div>
     </div>
 
-    <div style="text-align:center;padding:20px 0 30px">
+    <div class="profile-card">
       <div class="avatar" style="width:84px;height:84px;font-size:32px;margin:0 auto 16px">
         ${initials(state.user.name)}
       </div>
-      <div style="font-size:20px;font-weight:800">${esc(state.user.name)}</div>
-      <div style="color:var(--muted);font-size:14px;margin-top:6px">${esc(state.user.email)}</div>
+      <div style="font-size:20px;font-weight:800;text-align:center">${esc(state.user.name)}</div>
+      <div style="color:var(--muted);font-size:14px;margin-top:6px;text-align:center">${esc(state.user.email)}</div>
     </div>
 
     <div class="card">
