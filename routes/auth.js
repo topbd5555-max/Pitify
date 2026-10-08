@@ -3,10 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../db.js';
 import auth from '../middleware/auth.js';
+import { addUserToSheet, findUserInSheet } from '../sheet.js';
 
 const router = express.Router();
 
-// Helper: token বানানোর function
 const sign = (u) =>
   jwt.sign(
     { id: u.id, email: u.email },
@@ -15,66 +15,112 @@ const sign = (u) =>
   );
 
 // ============================================
-// POST /api/auth/register — নতুন ইউজার বানানো
+// POST /api/auth/register - new user
 // ============================================
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
   const { name, email, password } = req.body || {};
 
-  // সব ফিল্ড আছে কিনা চেক
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'All fields are required' });
   }
-
-  // পাসওয়ার্ড ছোট কিনা চেক
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
   }
 
-  // এই email আগে থেকেই আছে কিনা চেক
-  const exists = db
-    .prepare('SELECT id FROM users WHERE email = ?')
-    .get(email.toLowerCase());
+  const lowerEmail = email.toLowerCase().trim();
 
+  // Check if user exists locally
+  const exists = db.prepare('SELECT id FROM users WHERE email = ?').get(lowerEmail);
   if (exists) {
     return res.status(409).json({ error: 'Email already registered' });
   }
 
-  // পাসওয়ার্ড hash করো (সরাসরি সেভ করা unsafe)
-  const hash = bcrypt.hashSync(password, 10);
+  // Check if user exists in Google Sheet
+  try {
+    const sheetResult = await findUserInSheet(lowerEmail);
+    if (sheetResult.ok && sheetResult.user) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+  } catch (err) {
+    console.warn('Sheet check failed, continuing:', err.message);
+  }
 
-  // Database-এ insert করো
+  const hash = bcrypt.hashSync(password, 10);
+  const createdAt = new Date().toISOString();
+
+  // 1) Save to local SQLite
   const info = db
     .prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)')
-    .run(name.trim(), email.toLowerCase(), hash);
+    .run(name.trim(), lowerEmail, hash);
 
-  // ইউজার object বানাও
   const user = {
     id: info.lastInsertRowid,
     name: name.trim(),
-    email: email.toLowerCase(),
+    email: lowerEmail,
   };
 
-  // token সহ response পাঠাও
+  // 2) Save to Google Sheet (async, non-blocking)
+  addUserToSheet({
+    name: name.trim(),
+    email: lowerEmail,
+    password: hash,
+    created_at: createdAt,
+  }).then((result) => {
+    if (result.ok) {
+      console.log('✅ User synced to Google Sheet:', lowerEmail);
+    } else {
+      console.warn('⚠️ Sheet sync failed:', result.error);
+    }
+  });
+
   res.status(201).json({ token: sign(user), user });
 });
 
 // ============================================
-// POST /api/auth/login — পুরনো ইউজার login
+// POST /api/auth/login - existing user
 // ============================================
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email & password required' });
   }
 
-  // Database থেকে ইউজার খুঁজে বের করো
-  const user = db
-    .prepare('SELECT * FROM users WHERE email = ?')
-    .get(email.toLowerCase());
+  const lowerEmail = email.toLowerCase().trim();
 
-  // ইউজার না পেলে বা পাসওয়ার্ড মিললে না
-  if (!user || !bcrypt.compareSync(password, user.password)) {
+  // 1) Try local SQLite first
+  let user = db.prepare('SELECT * FROM users WHERE email = ?').get(lowerEmail);
+
+  // 2) If not found locally, fetch from Google Sheet (this fixes the login bug!)
+  if (!user) {
+    console.log('User not in SQLite, checking Google Sheet...');
+    try {
+      const sheetResult = await findUserInSheet(lowerEmail);
+      if (sheetResult.ok && sheetResult.user) {
+        // Re-insert to local SQLite so future logins are fast
+        const sheetUser = sheetResult.user;
+        const info = db
+          .prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)')
+          .run(sheetUser.name, sheetUser.email, sheetUser.password);
+
+        user = {
+          id: info.lastInsertRowid,
+          name: sheetUser.name,
+          email: sheetUser.email,
+          password: sheetUser.password,
+        };
+        console.log('✅ User restored from Google Sheet:', lowerEmail);
+      }
+    } catch (err) {
+      console.warn('Sheet fetch failed:', err.message);
+    }
+  }
+
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
+  if (!bcrypt.compareSync(password, user.password)) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
@@ -85,7 +131,7 @@ router.post('/login', (req, res) => {
 });
 
 // ============================================
-// GET /api/auth/me — নিজের প্রোফাইল দেখা (protected)
+// GET /api/auth/me - current user
 // ============================================
 router.get('/me', auth, (req, res) => {
   const user = db
