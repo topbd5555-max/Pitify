@@ -1,4 +1,6 @@
-const API_BASE = '/api';
+// ⚠️ Render-এ deploy করার পর এখানে তোমার backend URL বসাবি
+// উদাহরণ: const API_BASE = 'https://pitify-backend.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 const API = {
   token: localStorage.getItem('pitify_token') || null,
