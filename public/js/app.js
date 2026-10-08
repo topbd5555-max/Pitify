@@ -3,7 +3,6 @@ const state = { user: null, workouts: [], stats: null, history: [], filter: 'All
 
 /* ---------------- BACKGROUND EFFECTS ---------------- */
 function initBackgroundEffects() {
-  // Rain drops
   const rainLayer = document.getElementById('rain-layer');
   if (rainLayer && !rainLayer.dataset.init) {
     rainLayer.dataset.init = '1';
@@ -18,7 +17,6 @@ function initBackgroundEffects() {
     }
   }
 
-  // Fireflies (jonaki poka)
   const ffLayer = document.getElementById('fireflies-layer');
   if (ffLayer && !ffLayer.dataset.init) {
     ffLayer.dataset.init = '1';
@@ -64,6 +62,13 @@ function router() {
   const parts = path.split('/').filter(Boolean);
   const route = parts[0] || 'home';
   const param = parts[1];
+
+  // Toggle login-page mode class for the magical background
+  if (route === 'login') {
+    document.body.classList.add('login-page');
+  } else {
+    document.body.classList.remove('login-page');
+  }
 
   if (!state.user && route !== 'login') return go('/login');
   if (state.user && route === 'login') return go('/home');
@@ -115,7 +120,6 @@ function nav(active) {
 const initials = (n) =>
   n.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
 
-// Theme colors based on workout category
 const CATEGORY_THEME = {
   'Full Body': 'theme-orange',
   'Abs': 'theme-pink',
@@ -131,40 +135,137 @@ function themeFor(w) {
   return CATEGORY_THEME[w.category] || 'theme-green';
 }
 
-/* ---------------- LOGIN ---------------- */
+/* ---------------- LOGIN (MAGICAL PREMIUM) ---------------- */
 function renderLogin() {
   app.innerHTML = `
-    <div class="auth">
-      <div class="auth-logo">PIT<span>IFY</span></div>
-      <p class="auth-sub">Your pocket personal trainer</p>
+    <div class="auth-page">
 
-      <div class="tabs">
-        <button class="tab active" data-tab="login">Login</button>
-        <button class="tab" data-tab="register">Sign Up</button>
+      <!-- Side decorative cards (desktop only) -->
+      <div class="side-card side-left">
+        <div class="side-icon">🏃</div>
+        <div class="side-text">STRONGER<br/>EVERYDAY</div>
+        <div class="side-line"></div>
       </div>
 
-      <form class="auth-form" id="authForm">
-        <input class="input hidden" name="name" placeholder="Your name" autocomplete="name" />
-        <input class="input" name="email" type="email" placeholder="Email" autocomplete="email" required />
-        <input class="input" name="password" type="password" placeholder="Password (min 6 chars)" autocomplete="current-password" required />
-        <button class="btn-primary" type="submit" id="submitBtn">Continue</button>
-      </form>
-      <p class="err" id="err"></p>
+      <div class="side-card side-right">
+        <div class="side-icon">📊</div>
+        <div class="side-text">BETTER<br/>YOU</div>
+        <div class="side-line"></div>
+      </div>
+
+      <!-- Main glass card -->
+      <div class="auth-card">
+        <div class="auth-card-glow"></div>
+        <div class="auth-card-border"></div>
+
+        <div class="auth-inner">
+          <div class="crown-wrap">
+            <div class="crown">👑</div>
+            <div class="crown-glow"></div>
+          </div>
+
+          <div class="auth-logo">PIT<span>IFY</span></div>
+          <p class="auth-sub">Your pocket personal trainer</p>
+
+          <div class="tabs">
+            <button class="tab active" data-tab="login" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
+              </svg>
+              <span>Login</span>
+            </button>
+            <button class="tab" data-tab="register" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <line x1="19" y1="8" x2="19" y2="14"/>
+                <line x1="22" y1="11" x2="16" y2="11"/>
+              </svg>
+              <span>Sign Up</span>
+            </button>
+          </div>
+
+          <form class="auth-form" id="authForm" autocomplete="on">
+            <div class="input-wrap hidden" data-for="name">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
+              </svg>
+              <input class="input-field" name="name" placeholder="Your name" autocomplete="name" />
+            </div>
+
+            <div class="input-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                <path d="m3 7 9 6 9-6"/>
+              </svg>
+              <input class="input-field" name="email" type="email" placeholder="Email" autocomplete="email" required />
+            </div>
+
+            <div class="input-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="11" width="16" height="10" rx="2"/>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+              </svg>
+              <input class="input-field" name="password" type="password" placeholder="Password (min 6 chars)" autocomplete="current-password" required />
+              <button type="button" class="eye-toggle" aria-label="Toggle password">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="auth-extra">
+              <label class="remember">
+                <input type="checkbox" />
+                <span class="checkmark">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m5 12 5 5L20 7"/>
+                  </svg>
+                </span>
+                <span class="remember-text">Remember me</span>
+              </label>
+              <a href="#" class="forgot" onclick="event.preventDefault()">Forgot Password?</a>
+            </div>
+
+            <button class="btn-primary auth-btn" type="submit" id="submitBtn">
+              <span id="submitText">Continue</span>
+              <span class="btn-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m9 6 6 6-6 6"/>
+                </svg>
+              </span>
+            </button>
+          </form>
+          <p class="err" id="err"></p>
+        </div>
+      </div>
     </div>`;
 
   let mode = 'login';
   const form = document.getElementById('authForm');
+  const nameWrap = form.querySelector('[data-for="name"]');
   const nameInput = form.querySelector('[name="name"]');
   const errEl = document.getElementById('err');
   const btn = document.getElementById('submitBtn');
+  const btnText = document.getElementById('submitText');
+
+  // Password visibility toggle
+  const pwdInput = form.querySelector('[name="password"]');
+  const eyeBtn = form.querySelector('.eye-toggle');
+  eyeBtn.onclick = () => {
+    const type = pwdInput.type === 'password' ? 'text' : 'password';
+    pwdInput.type = type;
+    eyeBtn.classList.toggle('is-visible', type === 'text');
+  };
 
   document.querySelectorAll('.tab').forEach((tab) => {
     tab.onclick = () => {
       mode = tab.dataset.tab;
       document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === tab));
-      nameInput.classList.toggle('hidden', mode === 'login');
+      nameWrap.classList.toggle('hidden', mode === 'login');
       nameInput.required = mode === 'register';
-      btn.textContent = mode === 'login' ? 'Continue' : 'Create Account';
+      btnText.textContent = mode === 'login' ? 'Continue' : 'Create Account';
       errEl.textContent = '';
     };
   });
@@ -173,7 +274,7 @@ function renderLogin() {
     e.preventDefault();
     errEl.textContent = '';
     btn.disabled = true;
-    btn.textContent = 'Please wait...';
+    btnText.textContent = 'Please wait...';
     const fd = new FormData(form);
     try {
       const payload = {
@@ -184,12 +285,13 @@ function renderLogin() {
       const res = mode === 'login' ? await API.login(payload) : await API.register(payload);
       API.setToken(res.token);
       state.user = res.user;
+      document.body.classList.remove('login-page');
       toast(mode === 'login' ? 'Welcome back! 💪' : 'Account created! 🎉');
       go('/home');
     } catch (err) {
       errEl.textContent = err.message;
       btn.disabled = false;
-      btn.textContent = mode === 'login' ? 'Continue' : 'Create Account';
+      btnText.textContent = mode === 'login' ? 'Continue' : 'Create Account';
     }
   };
 }
