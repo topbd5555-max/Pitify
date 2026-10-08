@@ -311,7 +311,7 @@ input { font-family: inherit; }
 }
 .nav-item.active { color: var(--accent); }
 
-/* ---------- PLAYER ---------- */
+/* ---------- PLAYER (FULLSCREEN FITIFY STYLE) ---------- */
 .player {
   position: fixed;
   inset: 0;
@@ -319,25 +319,43 @@ input { font-family: inherit; }
   z-index: 100;
   display: flex;
   flex-direction: column;
-  padding: 24px;
+  height: 100vh;
+  height: 100dvh;
 }
+
 .player-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  padding: 16px 22px 12px;
+  flex-shrink: 0;
 }
+
+.player-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+
 .player-close {
   font-size: 26px;
   color: var(--muted);
   line-height: 1;
+  padding: 2px 6px;
+  border-radius: 8px;
+  transition: .2s;
 }
+.player-close:active {
+  color: var(--accent);
+}
+
 .player-progress {
   height: 5px;
   background: var(--surface-2);
+  margin: 0 22px 8px;
   border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 40px;
+  flex-shrink: 0;
 }
 .player-progress-fill {
   height: 100%;
@@ -345,50 +363,107 @@ input { font-family: inherit; }
   transition: width .3s linear;
   width: 0%;
 }
-.player-center {
+
+.player-video-wrap {
   flex: 1;
+  min-height: 0;
+  padding: 16px 22px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
 }
+
+.exercise-video {
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.exercise-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-fallback {
+  font-size: 100px;
+  line-height: 1;
+}
+
+.exercise-video.rest-video {
+  background: linear-gradient(135deg, #1f2a0e, #16161a);
+}
+
+.rest-emoji {
+  font-size: 100px;
+  animation: restPulse 2s ease-in-out infinite;
+}
+
+@keyframes restPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.player-info {
+  padding: 0 24px 8px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
 .player-phase {
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 3px;
   text-transform: uppercase;
   color: var(--muted);
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 .player-phase.rest { color: var(--accent); }
+
 .player-exercise {
-  font-size: 30px;
+  font-size: 22px;
   font-weight: 800;
-  margin-bottom: 28px;
-  padding: 0 20px;
+  margin-bottom: 10px;
   line-height: 1.2;
 }
+
 .player-timer {
-  font-size: 86px;
+  font-size: 72px;
   font-weight: 900;
-  letter-spacing: -4px;
+  letter-spacing: -3px;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--accent);
 }
+
 .player-next {
   font-size: 13px;
   color: var(--muted);
-  margin-top: 26px;
+  margin-top: 8px;
 }
+
 .player-controls {
   display: flex;
-  gap: 12px;
+  gap: 18px;
   justify-content: center;
-  padding-bottom: 20px;
+  align-items: center;
+  padding: 12px 24px calc(24px + env(safe-area-inset-bottom));
+  flex-shrink: 0;
 }
+
 .pbtn {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -396,8 +471,10 @@ input { font-family: inherit; }
   place-items: center;
   font-size: 22px;
   color: var(--text);
-  transition: .2s;
+  transition: .15s;
 }
+.pbtn:active { transform: scale(.94); }
+
 .pbtn.main {
   background: var(--accent);
   color: #0b0b0d;
@@ -405,28 +482,39 @@ input { font-family: inherit; }
   height: 76px;
   font-size: 26px;
   border: none;
+  box-shadow: 0 0 30px rgba(200, 255, 61, 0.35);
 }
-.pbtn:active { transform: scale(.94); }
 
-/* ---------- EXERCISE VIDEO ---------- */
-.exercise-video {
-  width: 220px;
-  height: 220px;
-  margin: 0 auto 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  overflow: hidden;
-  position: relative;
+.player-finish {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  padding: 40px;
 }
-.exercise-video video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+
+.finish-emoji {
+  font-size: 90px;
+  margin-bottom: 20px;
+  animation: finishPop .6s ease;
+}
+@keyframes finishPop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.finish-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.finish-sub {
+  font-size: 15px;
+  color: var(--muted);
 }
 
 /* ---------- DETAIL ---------- */
@@ -517,4 +605,13 @@ input { font-family: inherit; }
 }
 @keyframes pop {
   from { opacity: 0; transform: translate(-50%, 12px); }
+}
+
+/* ---------- MOBILE TWEAKS ---------- */
+@media (max-height: 700px) {
+  .player-timer { font-size: 56px; }
+  .player-exercise { font-size: 18px; }
+  .player-video-wrap { padding: 8px 18px; }
+  .pbtn { width: 54px; height: 54px; font-size: 20px; }
+  .pbtn.main { width: 68px; height: 68px; font-size: 24px; }
 }

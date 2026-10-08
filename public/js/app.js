@@ -317,41 +317,52 @@ function startPlayer(w) {
     const pct = (done / totalSeconds) * 100;
     const next = steps[idx + 1];
 
-    // === Video path তৈরি ===
-    const videoName = s.name.toLowerCase().replace(/\s+/g, '-');
-    const videoPath = `/videos/${videoName}.mp4`;
+    const isRest = s.type === 'rest';
+    const videoName = isRest ? null : s.name.toLowerCase().replace(/\s+/g, '-');
+    const videoPath = videoName ? `/videos/${videoName}.mp4` : null;
 
-    // === Video HTML (video না থাকলে emoji fallback) ===
-    const mediaHTML = `
-      <div class="exercise-video">
-        <video 
-          src="${videoPath}" 
-          autoplay 
-          loop 
-          muted 
-          playsinline
-          preload="auto"
-          onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size:90px\\'>💪</div>';">
-        </video>
-      </div>`;
+    const mediaHTML = isRest
+      ? `<div class="exercise-video rest-video"><div class="rest-emoji">😌</div></div>`
+      : `
+        <div class="exercise-video">
+          <video 
+            src="${videoPath}" 
+            autoplay 
+            loop 
+            muted 
+            playsinline
+            preload="auto"
+            onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'video-fallback\\'>💪</div>';">
+          </video>
+        </div>`;
 
     el.innerHTML = `
       <div class="player-top">
-        <div style="font-weight:700;font-size:14px">${esc(w.title)}</div>
+        <div class="player-title">${esc(w.title)}</div>
         <button class="player-close" id="closeBtn">✕</button>
       </div>
+
       <div class="player-progress">
         <div class="player-progress-fill" style="width:${pct}%"></div>
       </div>
-      <div class="player-center">
+
+      <div class="player-video-wrap">
         ${mediaHTML}
-        <div class="player-phase ${s.type === 'rest' ? 'rest' : ''}">
-          ${s.type === 'rest' ? 'REST' : `EXERCISE ${steps.slice(0, idx + 1).filter((x) => x.type === 'work').length}`}
+      </div>
+
+      <div class="player-info">
+        <div class="player-phase ${isRest ? 'rest' : ''}">
+          ${isRest ? 'REST' : `EXERCISE ${steps.slice(0, idx + 1).filter((x) => x.type === 'work').length}`}
         </div>
         <div class="player-exercise">${esc(s.name)}</div>
         <div class="player-timer">${remaining}</div>
-        ${next ? `<div class="player-next">Next: ${esc(next.name)} · ${next.seconds}s</div>` : `<div class="player-next">Last one! 🔥</div>`}
+        ${
+          next
+            ? `<div class="player-next">Next: ${esc(next.name)} · ${next.seconds}s</div>`
+            : `<div class="player-next">Last one! 🔥</div>`
+        }
       </div>
+
       <div class="player-controls">
         <button class="pbtn" id="prevBtn">⏮</button>
         <button class="pbtn main" id="toggleBtn">${paused ? '▶' : '❚❚'}</button>
@@ -389,10 +400,10 @@ function startPlayer(w) {
   async function finish() {
     clearInterval(tick);
     el.innerHTML = `
-      <div class="player-center" style="height:100%">
-        <div style="font-size:70px">🎉</div>
-        <div class="player-exercise" style="margin-top:20px">Workout Complete!</div>
-        <div class="player-next">${w.duration} min · ${w.calories} calories burned</div>
+      <div class="player-finish">
+        <div class="finish-emoji">🎉</div>
+        <div class="finish-title">Workout Complete!</div>
+        <div class="finish-sub">${w.duration} min · ${w.calories} calories burned</div>
       </div>`;
     try {
       await API.saveSession({
@@ -405,7 +416,7 @@ function startPlayer(w) {
       el.remove();
       toast('Great job! 💪');
       go('/progress');
-    }, 1800);
+    }, 2000);
   }
 
   tick = setInterval(() => {
